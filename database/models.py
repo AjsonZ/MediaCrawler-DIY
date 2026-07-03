@@ -106,6 +106,7 @@ class DouyinAweme(Base):
     music_download_url = Column(Text, comment='音乐下载URL')
     note_download_url = Column(Text, comment='笔记下载URL')
     source_keyword = Column(Text, default='', comment='来源关键词')
+    duration = Column(Integer, comment='视频时长(毫秒)')
 
 class DouyinAwemeComment(Base):
     __tablename__ = 'douyin_aweme_comment'
