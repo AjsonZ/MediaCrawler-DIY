@@ -171,16 +171,7 @@ class DouYinCrawler(AbstractCrawler):
                     page_aweme_list.append(aweme_info.get("aweme_id", ""))
                     await douyin_store.update_douyin_aweme(aweme_item=aweme_info)
                     await self.get_aweme_media(aweme_item=aweme_info)
-
-                # Fetch detail API for each video to get full author/statistics data
-                for aweme_id in page_aweme_list:
-                    try:
-                        detail = await self.dy_client.get_video_by_id(aweme_id)
-                        if detail:
-                            await douyin_store.update_douyin_aweme(aweme_item=detail)
-                    except Exception as e:
-                        utils.logger.warning(f"[DouYinCrawler.search] Failed to fetch detail for {aweme_id}: {e}")
-
+                
                 # Batch get note comments for the current page
                 await self.batch_get_note_comments(page_aweme_list)
 

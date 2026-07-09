@@ -24,7 +24,7 @@ PLATFORM = "dy"  # Platform, xhs | dy | ks | bili | wb | tieba | zhihu
 # 开启后 API 走 webapi.rednote.com，cookie 域使用 .rednote.com
 XHS_INTERNATIONAL = False
 
-KEYWORDS = "倍思MC2S,倍思 MC2S,倍思mc2s,倍思 mc2s"  # Keyword search configuration, separated by English commas
+KEYWORDS = "韶音Open dots air,韶音OpenDots Air,OpenDots Air,OpenDotsAir"  # Keyword search configuration, separated by English commas
 LOGIN_TYPE = "qrcode"  # qrcode or phone or cookie
 COOKIES = ""
 CRAWLER_TYPE = (
@@ -99,7 +99,7 @@ USER_DATA_DIR = "%s_user_data_dir"  # %s will be replaced by platform name
 START_PAGE = 1
 
 # Control the number of crawled videos/posts
-CRAWLER_MAX_NOTES_COUNT = 50
+CRAWLER_MAX_NOTES_COUNT = 30
 
 # Controlling the number of concurrent crawlers
 MAX_CONCURRENCY_NUM = 1

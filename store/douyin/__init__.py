@@ -165,10 +165,13 @@ async def update_douyin_aweme(aweme_item: Dict):
         "title": aweme_item.get("desc", ""),
         "desc": aweme_item.get("desc", ""),
         "create_time": aweme_item.get("create_time"),
-        "creator_hash": anonymize_user_id(user_info.get("uid")),  # 创作者匿名哈希(不存原始 uid)
-        "nickname": mask_nickname(user_info.get("nickname")),  # 用户昵称(已脱敏)
+        "creator_hash": str(user_info.get("uid", "")),  # 创作者原始 uid
+        "nickname": str(user_info.get("nickname", "")),  # 用户昵称(原始)
         "liked_count": str(interact_info.get("digg_count")),
         "collected_count": str(interact_info.get("collect_count")),
+        "follower_count": str(user_info.get("follower_count", "")),
+        "total_favorited": str(user_info.get("total_favorited", "")),
+        "play_count": str(interact_info.get("play_count", "")),
         "comment_count": str(interact_info.get("comment_count")),
         "share_count": str(interact_info.get("share_count")),
         "last_modify_ts": utils.get_current_timestamp(),
@@ -204,8 +207,8 @@ async def update_dy_aweme_comment(aweme_id: str, comment_item: Dict):
         "create_time": comment_item.get("create_time"),
         "aweme_id": aweme_id,
         "content": comment_item.get("text"),
-        "creator_hash": anonymize_user_id(user_info.get("uid")),  # 创作者匿名哈希(不存原始 uid)
-        "nickname": mask_nickname(user_info.get("nickname")),  # 用户昵称(已脱敏)
+        "creator_hash": str(user_info.get("uid", "")),  # 创作者原始 uid
+        "nickname": str(user_info.get("nickname", "")),  # 用户昵称(原始)
         "sub_comment_count": str(comment_item.get("reply_comment_total", 0)),
         "like_count": (comment_item.get("digg_count") if comment_item.get("digg_count") else 0),
         "last_modify_ts": utils.get_current_timestamp(),
