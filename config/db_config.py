@@ -47,10 +47,13 @@ CACHE_TYPE_REDIS = "redis"
 CACHE_TYPE_MEMORY = "memory"
 
 # sqlite config
-SQLITE_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "sqlite_tables.db")
+SQLITE_DB_NAME = "sqlite_tables.db"  # Can be overridden at runtime via config or CLI
+
+def get_sqlite_db_path():
+    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", SQLITE_DB_NAME)
 
 sqlite_db_config = {
-    "db_path": SQLITE_DB_PATH
+    "db_path": get_sqlite_db_path()
 }
 
 # mongodb config

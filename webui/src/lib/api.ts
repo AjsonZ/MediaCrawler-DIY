@@ -14,7 +14,13 @@ export interface CrawlerConfig {
   login_type: string
   crawler_type: string
   keywords: string
+  specified_ids?: string
+  creator_ids?: string
   start_page: number
+  crawler_version: string
+  max_notes_count: number | null
+  max_sleep_sec: number | null
+  max_comments_count: number | null
   enable_comments: boolean
   enable_sub_comments: boolean
   save_option: string
@@ -76,6 +82,7 @@ export const dataApi = {
     api.get<{ files: DataFile[] }>('/data/files', { params: { platform, file_type: fileType } }),
   getFileContent: (path: string, limit = 100) =>
     api.get<FilePreviewResponse>('/data/files/' + path, { params: { preview: true, limit } }),
+  exportExcel: (file?: string) => api.post<{ status: string; message: string; file?: string }>('/data/export-excel', null, { params: { file } }),
   getStats: () => api.get('/data/stats'),
   getDownloadUrl: (path: string) => `/api/data/download/${path}`,
 }

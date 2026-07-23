@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Toaster } from 'sonner'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
-import { AuthorFooter } from '@/components/layout/AuthorFooter'
+
 import { CrawlerConfigPanel } from '@/components/config/CrawlerConfigPanel'
 import { EnvironmentCheck, isEnvChecked } from '@/components/env/EnvironmentCheck'
 import { LicenseDisclaimer, isLicenseAccepted } from '@/components/license/LicenseDisclaimer'
@@ -53,9 +53,6 @@ function App() {
         {/* Console - Collapsible Terminal */}
         <MainContent />
       </div>
-
-      {/* Author Footer */}
-      <AuthorFooter />
 
       {/* Toast notifications - Theme-aware style */}
       <Toaster

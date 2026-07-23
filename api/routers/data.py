@@ -17,6 +17,7 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 import os
+import sys
 import json
 from pathlib import Path
 from typing import Optional
@@ -26,8 +27,9 @@ from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/data", tags=["data"])
 
-# Data directory
+# Data directories
 DATA_DIR = Path(__file__).parent.parent.parent / "data"
+DB_DIR = Path(__file__).parent.parent.parent / "database"
 
 
 def get_file_info(file_path: Path) -> dict:
@@ -58,36 +60,80 @@ def get_file_info(file_path: Path) -> dict:
     }
 
 
+def get_db_file_info(file_path: Path) -> dict:
+    """Get SQLite database file info with table and row counts"""
+    import sqlite3
+    stat = file_path.stat()
+    info = {
+        "name": file_path.name,
+        "path": f"db://{file_path.name}",
+        "size": stat.st_size,
+        "modified_at": stat.st_mtime,
+        "record_count": None,
+        "type": "sqlite"
+    }
+    try:
+        conn = sqlite3.connect(file_path)
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%alembic%'")
+        tables = [t[0] for t in cur.fetchall()]
+        if tables:
+            # Get total row count across main data tables
+            total = 0
+            for t in tables:
+                try:
+                    cur.execute(f'SELECT COUNT(*) FROM [{t}]')
+                    total += cur.fetchone()[0]
+                except Exception:
+                    pass
+            info["record_count"] = total
+            info["tables"] = tables
+        conn.close()
+    except Exception:
+        pass
+    return info
+
+
 @router.get("/files")
 async def list_data_files(platform: Optional[str] = None, file_type: Optional[str] = None):
     """Get data file list"""
-    if not DATA_DIR.exists():
-        return {"files": []}
-
     files = []
     supported_extensions = {".json", ".csv", ".xlsx", ".xls"}
 
-    for root, dirs, filenames in os.walk(DATA_DIR):
-        root_path = Path(root)
-        for filename in filenames:
-            file_path = root_path / filename
-            if file_path.suffix.lower() not in supported_extensions:
-                continue
-
-            # Platform filter
-            if platform:
-                rel_path = str(file_path.relative_to(DATA_DIR))
-                if platform.lower() not in rel_path.lower():
+    # Scan data directory for regular files
+    if DATA_DIR.exists():
+        for root, dirs, filenames in os.walk(DATA_DIR):
+            root_path = Path(root)
+            for filename in filenames:
+                file_path = root_path / filename
+                if file_path.suffix.lower() not in supported_extensions:
                     continue
 
-            # Type filter
-            if file_type and file_path.suffix[1:].lower() != file_type.lower():
-                continue
+                if platform:
+                    rel_path = str(file_path.relative_to(DATA_DIR))
+                    if platform.lower() not in rel_path.lower():
+                        continue
 
-            try:
-                files.append(get_file_info(file_path))
-            except Exception:
-                continue
+                if file_type and file_path.suffix[1:].lower() != file_type.lower():
+                    continue
+
+                try:
+                    files.append(get_file_info(file_path))
+                except Exception:
+                    continue
+
+    # Scan database directory for SQLite files
+    if DB_DIR.exists() and (not file_type or file_type.lower() == "sqlite"):
+        for filename in os.listdir(DB_DIR):
+            if filename.endswith(".db"):
+                file_path = DB_DIR / filename
+                if platform:
+                    if platform.lower() not in filename.lower():
+                        continue
+                try:
+                    files.append(get_db_file_info(file_path))
+                except Exception:
+                    continue
 
     # Sort by modification time (newest first)
     files.sort(key=lambda x: x["modified_at"], reverse=True)
@@ -98,6 +144,38 @@ async def list_data_files(platform: Optional[str] = None, file_type: Optional[st
 @router.get("/files/{file_path:path}")
 async def get_file_content(file_path: str, preview: bool = True, limit: int = 100):
     """Get file content or preview"""
+    # Handle SQLite database files
+    if file_path.startswith("db://"):
+        import sqlite3
+        db_name = file_path[5:]
+        full_path = DB_DIR / db_name
+        if not full_path.exists():
+            raise HTTPException(status_code=404, detail="Database not found")
+
+        conn = sqlite3.connect(full_path)
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%alembic%'")
+        tables = [t[0] for t in cur.fetchall()]
+        # Find the main data table (skip comment tables)
+        data_tables = [t for t in tables if not t.endswith('_comment')]
+        if not data_tables:
+            data_tables = tables
+        main_table = data_tables[0]
+
+        # Get column names
+        cur.execute(f"PRAGMA table_info([{main_table}])")
+        columns = [col[1] for col in cur.fetchall()]
+
+        # Get data rows
+        cur.execute(f"SELECT * FROM [{main_table}] ORDER BY id DESC LIMIT {limit}")
+        rows = cur.fetchall()
+        cur.execute(f"SELECT COUNT(*) FROM [{main_table}]")
+        total = cur.fetchone()[0]
+        conn.close()
+
+        data = [dict(zip(columns, row)) for row in rows]
+        return {"data": data, "total": total, "columns": columns, "table": main_table}
+
     full_path = DATA_DIR / file_path
 
     if not full_path.exists():
@@ -185,6 +263,33 @@ async def download_file(file_path: str):
         filename=full_path.name,
         media_type="application/octet-stream"
     )
+
+
+@router.post("/export-excel")
+async def export_excel(file: str = "sqlite_tables.db"):
+    """Export a SQLite database file to Excel on Desktop"""
+    try:
+        db_path = DB_DIR / file
+        if not db_path.exists():
+            raise HTTPException(status_code=404, detail=f"Database {file} not found")
+
+        import subprocess
+        export_script = Path(__file__).parent.parent.parent / "export_excel.py"
+        result = subprocess.run(
+            [sys.executable, str(export_script), str(db_path)],
+            capture_output=True, text=True, timeout=30,
+            cwd=str(Path(__file__).parent.parent.parent),
+            encoding="utf-8", errors="replace"
+        )
+        output = result.stdout.strip() or result.stderr.strip()
+        if result.returncode == 0:
+            return {"status": "ok", "message": output, "file": file}
+        else:
+            return {"status": "error", "message": output}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/stats")

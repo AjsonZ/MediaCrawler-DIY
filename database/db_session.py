@@ -22,7 +22,7 @@ from sqlalchemy.orm import sessionmaker
 from contextlib import asynccontextmanager
 from .models import Base
 import config
-from config.db_config import mysql_db_config, sqlite_db_config, postgres_db_config
+from config.db_config import mysql_db_config, sqlite_db_config, postgres_db_config, get_sqlite_db_path
 
 # Keep a cache of engines
 _engines = {}
@@ -54,14 +54,21 @@ def get_async_engine(db_type: str = None):
     if db_type is None:
         db_type = config.SAVE_DATA_OPTION
 
-    if db_type in _engines:
-        return _engines[db_type]
+    if db_type == "sqlite":
+        db_path = get_sqlite_db_path()
+        cache_key = f"sqlite:{db_path}"
+    else:
+        cache_key = db_type
+
+    if cache_key in _engines:
+        return _engines[cache_key]
 
     if db_type in ["json", "jsonl", "csv"]:
         return None
 
     if db_type == "sqlite":
-        db_url = f"sqlite+aiosqlite:///{sqlite_db_config['db_path']}"
+        db_path = get_sqlite_db_path()
+        db_url = f"sqlite+aiosqlite:///{db_path}"
     elif db_type == "mysql" or db_type == "db":
         db_url = f"mysql+asyncmy://{mysql_db_config['user']}:{mysql_db_config['password']}@{mysql_db_config['host']}:{mysql_db_config['port']}/{mysql_db_config['db_name']}"
     elif db_type == "postgres":
@@ -70,7 +77,7 @@ def get_async_engine(db_type: str = None):
         raise ValueError(f"Unsupported database type: {db_type}")
 
     engine = create_async_engine(db_url, echo=False)
-    _engines[db_type] = engine
+    _engines[cache_key] = engine
     return engine
 
 

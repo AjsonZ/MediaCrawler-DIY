@@ -17,8 +17,10 @@
 # 使用本代码即表示您同意遵守上述原则和LICENSE中的所有条款。
 
 import asyncio
+import re
 import subprocess
 import signal
+import sys
 import os
 from typing import Optional, List
 from datetime import datetime
@@ -109,6 +111,9 @@ class CrawlerManager:
                         self._log_queue.get_nowait()
                 except asyncio.QueueEmpty:
                     pass
+
+            # Switch crawler version before building command
+            self._set_crawler_version(config.crawler_version)
 
             # Build command line arguments
             cmd = self._build_command(config)
@@ -202,9 +207,26 @@ class CrawlerManager:
             "error_message": None
         }
 
+    def _set_crawler_version(self, version: str):
+        """Switch crawler version by updating __init__.py import"""
+        init_file = self._project_root / "media_platform" / "douyin" / "__init__.py"
+        if version == "v1":
+            import_line = "from .core_v1 import DouYinCrawler"
+        else:
+            import_line = "from .core import DouYinCrawler"
+
+        content = init_file.read_text(encoding="utf-8")
+        new_content = []
+        for line in content.splitlines():
+            if line.strip().startswith("from .core") and "import DouYinCrawler" in line:
+                new_content.append(import_line)
+            else:
+                new_content.append(line)
+        init_file.write_text("\n".join(new_content) + "\n", encoding="utf-8")
+
     def _build_command(self, config: CrawlerStartRequest) -> list:
         """Build main.py command line arguments"""
-        cmd = ["uv", "run", "python", "main.py"]
+        cmd = [sys.executable, "main.py"]
 
         cmd.extend(["--platform", config.platform.value])
         cmd.extend(["--lt", config.login_type.value])
@@ -214,10 +236,25 @@ class CrawlerManager:
         # Pass different arguments based on crawler type
         if config.crawler_type.value == "search" and config.keywords:
             cmd.extend(["--keywords", config.keywords])
+            # Name the database after the first keyword
+            first_kw = config.keywords.split(",")[0].strip()
+            if first_kw:
+                db_name = first_kw + ".db"
+                cmd.extend(["--db", db_name])
         elif config.crawler_type.value == "detail" and config.specified_ids:
             cmd.extend(["--specified_id", config.specified_ids])
+            first_id = config.specified_ids.split(",")[0].strip()
+            if first_id:
+                short_id = re.sub(r'https?://[^/]+/', '', first_id)[:16]
+                cmd.extend(["--db", f"detail_{short_id}.db"])
         elif config.crawler_type.value == "creator" and config.creator_ids:
             cmd.extend(["--creator_id", config.creator_ids])
+            first_id = config.creator_ids.split(",")[0].strip()
+            if first_id:
+                # Extract short ID from URL or use as-is
+                match = re.search(r"user/([^/?]+)", first_id)
+                short_id = match.group(1)[:12] if match else first_id[:12]
+                cmd.extend(["--db", f"creator_{short_id}.db"])
 
         if config.start_page != 1:
             cmd.extend(["--start", str(config.start_page)])
@@ -227,6 +264,9 @@ class CrawlerManager:
 
         if config.max_notes_count is not None:
             cmd.extend(["--crawler_max_notes_count", str(config.max_notes_count)])
+
+        if config.max_sleep_sec is not None:
+            cmd.extend(["--max_sleep_sec", str(config.max_sleep_sec)])
 
         if config.max_comments_count is not None:
             cmd.extend(["--max_comments_count_singlenotes", str(config.max_comments_count)])

@@ -47,16 +47,20 @@ function saveClearedLogIdToStorage(id: number | null): void {
 }
 
 const defaultConfig: CrawlerConfig = {
-  platform: 'bili',
+  platform: 'dy',
   login_type: 'qrcode',
   crawler_type: 'search',
   keywords: '',
   specified_ids: '',
   creator_ids: '',
   start_page: 1,
-  enable_comments: true,
+  crawler_version: 'new',
+  max_notes_count: 30,
+  max_sleep_sec: 2,
+  max_comments_count: null,
+  enable_comments: false,
   enable_sub_comments: false,
-  save_option: 'json',
+  save_option: 'sqlite',
   cookies: '',
   headless: false,
 }

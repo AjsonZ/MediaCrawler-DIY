@@ -74,7 +74,9 @@ class CrawlerStartRequest(BaseModel):
     save_option: SaveDataOptionEnum = SaveDataOptionEnum.JSONL
     cookies: str = ""
     headless: bool = False
+    crawler_version: str = "new"  # "new" = core.py (detail API), "v1" = core_v1.py (fast)
     max_notes_count: Optional[int] = Field(default=None, ge=1, le=MAX_API_LIMIT_COUNT)
+    max_sleep_sec: Optional[int] = Field(default=None, ge=0, le=60)
     max_comments_count: Optional[int] = Field(default=None, ge=1, le=MAX_API_LIMIT_COUNT)
 
 

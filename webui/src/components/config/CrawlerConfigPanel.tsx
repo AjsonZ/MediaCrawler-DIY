@@ -184,7 +184,7 @@ export function CrawlerConfigPanel() {
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t('field.crawlType')}>
+            <Field label={t('field.crawlType')} hint={t('field.crawlTypeHint')}>
               <Select
                 value={config.crawler_type}
                 onValueChange={(value) => updateConfig({ crawler_type: value })}
@@ -324,6 +324,47 @@ export function CrawlerConfigPanel() {
           description={t('section.outputConfig.description')}
           icon={Database}
         >
+          <Field label={t('field.crawlerVersion')} hint={t('field.crawlerVersionHint')}>
+            <Select
+              value={config.crawler_version}
+              onValueChange={(value) => updateConfig({ crawler_version: value })}
+              disabled={isDisabled}
+            >
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">新版 (详情+搜索)</SelectItem>
+                <SelectItem value="v1">旧版 (快速搜索)</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t('field.maxNotesCount')} hint={t('field.maxNotesCountHint')}>
+              <Input
+                type="number"
+                min={1}
+                max={10000}
+                value={config.max_notes_count ?? 30}
+                onChange={(e) => updateConfig({ max_notes_count: parseInt(e.target.value) || 30 })}
+                disabled={isDisabled}
+                className="h-9 text-xs"
+              />
+            </Field>
+            <Field label={t('field.maxSleepSec')} hint={t('field.maxSleepSecHint')}>
+              <Input
+                type="number"
+                min={0}
+                max={60}
+                value={config.max_sleep_sec ?? 2}
+                onChange={(e) => updateConfig({ max_sleep_sec: parseInt(e.target.value) || 2 })}
+                disabled={isDisabled}
+                className="h-9 text-xs"
+              />
+            </Field>
+          </div>
+
           <Field label={t('field.saveFormat')}>
             <Select
               value={config.save_option}

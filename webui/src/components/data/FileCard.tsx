@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileJson, FileSpreadsheet, FileText, Download, Eye } from 'lucide-react'
+import { FileJson, FileSpreadsheet, FileText, Download, Eye, FileOutput } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { dataApi } from '@/lib/api'
 import { formatFileSize, formatDateTime } from '@/lib/utils'
 import { DataPreviewDialog } from './preview/DataPreviewDialog'
+import { toast } from 'sonner'
 import type { DataFile } from '@/types/crawler'
 
 interface FileCardProps {
@@ -62,6 +63,21 @@ export function FileCard({ file }: FileCardProps) {
     window.open(url, '_blank')
   }
 
+  const handleExportExcel = async () => {
+    try {
+      const { data } = await dataApi.exportExcel(file.name)
+      if (data.status === 'ok') {
+        toast.success(`已导出: ${data.message.split('\n').pop() || file.name}`)
+      } else {
+        toast.error(data.message || '导出失败')
+      }
+    } catch (e: any) {
+      toast.error(`导出失败: ${e.message}`)
+    }
+  }
+
+  const isSqlite = file.type === 'sqlite'
+
   return (
     <>
       <Card className={`relative overflow-hidden card-scan group transition-all ${styles.border} hover:shadow-[0_0_15px_rgb(var(--cyber-neon-cyan)/0.15)]`}>
@@ -94,6 +110,17 @@ export function FileCard({ file }: FileCardProps) {
               .{file.type.toUpperCase()}
             </Badge>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isSqlite && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 font-mono text-cyber-neon-green hover:text-cyber-neon-green hover:bg-cyber-neon-green/10"
+                  onClick={handleExportExcel}
+                >
+                  <FileOutput className="w-3 h-3 mr-1" />
+                  导出Excel
+                </Button>
+              )}
               {isPreviewable && (
                 <Button
                   variant="ghost"

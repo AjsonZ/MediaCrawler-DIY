@@ -6,6 +6,10 @@ export interface CrawlerConfig {
   specified_ids: string  // 详情模式下的帖子/视频ID
   creator_ids: string    // 创作者模式下的创作者ID
   start_page: number
+  crawler_version: string  // "new" | "v1"
+  max_notes_count: number | null
+  max_sleep_sec: number | null
+  max_comments_count: number | null
   enable_comments: boolean
   enable_sub_comments: boolean
   save_option: string
